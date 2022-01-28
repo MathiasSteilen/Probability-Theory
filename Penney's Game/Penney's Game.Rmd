@@ -1,0 +1,160 @@
+---
+title: "Penney's Game"
+author: "Mathias Steilen"
+date: "20.12.2021"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    toc_collapsed: true
+    theme: flatly
+    df_print: paged
+    code_download: true
+    code_folding: show
+editor_options: 
+  chunk_output_type: inline
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(ggplot2)
+library(gganimate)
+library(ggthemes)
+library(gifski)
+library(gtools)
+library(reshape2)
+```
+
+***
+### Simulation
+***
+
+Permutations and counter permutations:
+
+```{r}
+permutations <- as.data.frame(permutations(n = 2, r = 3,
+                                           v = c("H","T"),
+                                           repeats.allowed = TRUE))
+counter_permutations <- permutations
+
+for (i in 1:nrow(permutations)){
+  
+  if(permutations[i,2] == "H"){
+    
+    counter_permutations[i,1] <- "T"
+    
+  } else {
+    
+    counter_permutations[i,1] <- "H"
+    
+  }
+  
+  counter_permutations[i,2] <- permutations[i,1]
+  counter_permutations[i,3] <- permutations[i,2]
+}
+```
+
+
+***
+### Simulation
+***
+
+```{r}
+simulations = 500
+winmat <- matrix(nrow = simulations, ncol = nrow(permutations))
+winmat[,1] <- 1:simulations
+
+for(p in 1:nrow(permutations)){
+  
+  opponent_sequence = as.character(permutations[p,])
+  own_sequence = as.character(counter_permutations[p,])
+  
+  for(i in 1:simulations){
+    
+    sequence <- sample(x = c("H", "T"), replace = TRUE, size = 300)
+    
+    idx <- which(sequence == opponent_sequence[1])
+    oppocc <- idx[sapply(idx, function(i) all(sequence[i:(i+(length(opponent_sequence)-1))] == opponent_sequence))]
+    
+    idx <- which(sequence == own_sequence[[1]])
+    ownocc <- idx[sapply(idx, function(i) all(sequence[i:(i+(length(own_sequence)-1))] == own_sequence))]
+    
+    if (ownocc[1] < oppocc[1]){
+      
+      winmat[i,p] = 1
+      
+    } else if (ownocc[1] > oppocc[1]){
+      
+      winmat[i,p] = 0
+      
+    }
+    
+  }
+
+  winmat[,p] <- cumsum(winmat[,p])/(1:simulations)
+  
+  }
+```
+
+
+***
+### Plot
+***
+
+Reshape data:
+
+```{r}
+#ggplot requires data frame
+windf <- as.data.frame(winmat)
+
+#colnames for strategies
+colnames(windf) <- paste(paste(counter_permutations[,1],
+                               counter_permutations[,3],
+                               counter_permutations[,3], sep=""),
+                         paste(permutations[,1],
+                               permutations[,3],
+                               permutations[,3], sep=""),
+                         sep = " vs. ")
+
+
+#id variable for position in matrix 
+windf$id <- 1:nrow(windf)
+
+#reshape to long format
+plot_windf <- melt(windf,id.var="id")
+
+#plot
+graph2 = ggplot(plot_windf, aes(x=id,y=value,group=variable,colour=variable)) +
+  geom_line(aes(lty = "solid")) +
+  labs(title = "Penney's Game",
+       subtitle = "Simulation of all strategies for a sequence of 3") +
+  guides(linetype = "none") + #removes linetype legend
+  xlab("Simulated Games") +
+  ylab("Win %") +
+  scale_color_discrete(name = "Strategy: 'You vs. Opponent'") +
+  theme_bw()
+graph2
+```
+
+```{r}
+graph2.animation = graph2 +
+  transition_reveal(id)
+
+animate(graph2.animation, height = 500, width = 800, fps = 30, duration = 5,
+        end_pause = 60, res = 125)
+anim_save("draw.gif")
+```
+
+
+
+
+
+
+
