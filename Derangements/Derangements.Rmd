@@ -1,0 +1,98 @@
+---
+title: "Derangements: A lazy mailman"
+author: "Mathias Steilen"
+date: "18/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulation for 4 cards
+
+```{r, include=FALSE}
+# packages
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+library(reshape2)
+```
+
+```{r}
+# params
+letters = 4
+simulations = 5000
+paths = 30
+positions = c(1:letters)
+resmat = matrix(ncol = paths, nrow = simulations)
+
+#sim
+for (x in 1:paths){
+
+  permutations = matrix(replicate(n = simulations, sample(x = letters, size = letters, replace = FALSE)), ncol = simulations, nrow = letters)
+  boolvec = vector(mode = "logical", length = simulations)
+  
+  for (i in 1:simulations){
+    
+    order = permutations[,i]
+    b = order == positions
+    
+    if (sum(b) > 0){
+      boolvec[i] = 1
+    } else {
+      boolvec[i] == 0
+    }
+    
+  }
+  
+  resmat[,x] = cumsum(boolvec)/(1:simulations)
+  
+}
+
+
+#ggplot requires data frame in long format
+
+#convert to dataframe
+resdf <- as.data.frame(resmat)
+
+#generate id variable for position in matrix 
+resdf$id <- 1:nrow(resdf)
+
+#reshape to long format
+plot_resdf <- melt(resdf, id.var="id")
+```
+
+```{r}
+#saving time for import
+# write.csv(plot_resdf,"plot_resdf40000letters.csv", row.names = FALSE)
+letters = 40000
+plot_resdf <- read.csv("plot_resdf40000letters.csv")
+```
+
+
+```{r, dpi=600, out.height=1000, out.width=1600, dev='png'}
+
+#plot
+png(paste(letters,"Letters.png"), units="cm", width=16, height=10, res=600)
+
+ggplot(plot_resdf, aes(x=id,y=value,group=variable,colour=variable)) +
+  geom_line(lty = "solid", size = 0.5, alpha = 0.25) +
+  labs(title = paste("A Lazy Mailman:", letters, "letters distributed randomly"),
+       subtitle = "Probability of at least one letter reaching its intended recipient") +
+  guides(linetype = "none", colour = 'none') + #removes linetype legend
+  xlab("Simulated Lazy Mailmen") +
+  ylab("Probability") +
+  scale_color_manual(values = rep("darkblue", paths)) +
+  theme_bw() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  annotate(geom = "label", size = 4, x=4150, y=0.70, label = "All paths converge to 1-1/e") +
+  theme(plot.title=element_text(size=14, face = "bold", color="black")) +
+  theme(plot.subtitle=element_text(size=12, face="italic", color="darkgrey")) +
+  geom_hline(yintercept = 1-1/exp(1), lty = "dashed", color = "red", size = 0.75)
+
+dev.off()
+
+```
+
+
