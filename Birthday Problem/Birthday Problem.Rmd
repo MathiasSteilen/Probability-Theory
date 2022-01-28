@@ -1,0 +1,100 @@
+---
+title: "Birthday Problem"
+author: "Mathias Steilen"
+date: "15/01/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Simulation
+
+```{r, include=FALSE}
+# packages
+library(tidyverse)
+library(magrittr)
+library(ggplot2)
+```
+
+```{r}
+# params
+simulations = 5000
+players = c(2:100)
+resmat = matrix(ncol = 3, nrow = length(players))
+resmat[,1] = players
+resmat[1,3] = 365/365 * 364/365
+
+for (i in 2:length(players)){
+  resmat[i,3] = resmat[i-1,3] * (365-i)/365
+}
+resmat[,3] = 1 - resmat[,3]
+
+#simulation
+for (v in players){
+
+  valmat <- matrix(ncol = simulations, nrow = v)
+  occvec <- vector(mode = "logical", length = simulations)
+  
+  for (i in 1:simulations){
+    
+    valmat[,i] = sample(x = 1:365, size = v, replace = TRUE)
+    occvec[i] = sum(duplicated(valmat[,i])) > 0 # using TIDYVERSE PACKAGE
+    
+  }
+  
+  resmat[v-1,2] = sum(occvec)/simulations
+}
+
+#convert to data frame for ggplot
+resmat <- resmat %>% as.data.frame()
+
+#confidence levels
+fifty_percent_confidence = min(which(resmat$V3 > 0.5) + 1)
+ninetynine_percent_confidence = min(which(resmat$V3 > 0.99) + 1)
+```
+
+```{r, fig.cap="A Birtday Problem - visualised"}
+png(paste("Birthday Problem.png"), units="cm", width=16, height=10, res=300)
+
+ggplot(resmat, aes(x = V1)) +
+  geom_line(aes(y = V2, colour = "Simulation"), lty = "solid", size = 1) +
+  geom_line(aes(y = V3, colour = "Closed Form"), lty = "dashed", size = 0.5) +
+  labs(title = "A Birthday Problem",
+       subtitle = "How many people would you put into a room until you are 99% \ncertain that at least two people share the same birthday? ",
+       caption = paste(simulations, "simulations for every number 'n' people (R)")) +
+  guides(linetype = "none") + #removes linetype legend
+  labs(x = "People in a Room",
+       y = "Prob. of at least 2 birthdays falling together",
+       colour = NULL) +
+  scale_colour_manual(values = c("black", "lightblue")) +
+  scale_x_continuous(limits = c(1, 100), breaks = c(seq(0, 100, by=50), 23, 57)) +
+  geom_segment(aes(x = fifty_percent_confidence,
+                   y = 0,
+                   xend = fifty_percent_confidence,
+                   yend = resmat[fifty_percent_confidence-1,3]),
+               lty = 3, colour = "black") +
+  geom_segment(aes(x = ninetynine_percent_confidence,
+                   y = 0,
+                   xend = ninetynine_percent_confidence,
+                   yend = resmat[ninetynine_percent_confidence-1,3]),
+               lty = 3, colour = "black") +
+  annotate(geom = "text", size = 3, x = 27, y = 0.25,
+           label = "50%", fontface = "italic") +
+  annotate(geom = "text", size = 3, x = 61, y = 0.49,
+           label = "99%", fontface = "italic") +
+  theme_bw() +
+  theme(text=element_text(size = 11, color = "black"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.title=element_text(size=14, face = "bold", color="black"),
+        plot.subtitle=element_text(size=12, face="italic", color="grey30"),
+        plot.caption=element_text(size=6, face="italic", color="grey20"))
+
+dev.off()
+```
+
