@@ -1,0 +1,57 @@
+---
+title: "Bayes' Theorem"
+author: "Mathias Steilen"
+date: "29/11/2021"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    toc_collapsed: true
+    theme: cosmo
+    code: hide
+    df_print: paged
+    code_download: true
+    code_folding: show
+editor_options: 
+  chunk_output_type: inline
+---
+
+<style>
+body {
+text-align: justify}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+***
+### Drug testing
+***
+
+Suppose that a test for using a particular drug is 99% sensitive and 99% specific. That is, the test will produce 99% true positive results for drug users and 99% true negative results for non-drug users. Suppose that 0.5% of people are users of the drug. What is the probability that a randomly selected individual with a positive test is a drug user?
+
+```{r}
+#params
+resmat <- matrix(nrow = 10000, ncol = 7)
+colnames(resmat) <- c("P(D)", "P(D_bar)", "P(T|D)", "P(T_bar|D)", "P(T|D_bar)", "P(T_bar|D_bar)", "P(D|T)")
+
+prob_drug_user <- 0.005
+lower_precision <- 0.95
+upper_precision <- 1
+
+#populate matrix
+resmat[,"P(D)"] <- prob_drug_user
+resmat[,"P(D_bar)"] <- 1 - resmat[,1]
+resmat[,"P(T|D)"] <- seq(from = lower_precision, to = upper_precision, length.out = nrow(resmat))
+resmat[,"P(T_bar|D)"] <- 1 - resmat[,"P(T|D)"]
+resmat[,"P(T_bar|D_bar)"] <- seq(from = lower_precision, to = upper_precision, length.out = nrow(resmat))
+resmat[,"P(T|D_bar)"] <- 1 - resmat[,"P(T_bar|D_bar)"]
+resmat[,"P(D|T)"] <- (resmat[,"P(T|D)"] * resmat[,"P(D)"])/(resmat[,"P(T|D)"] * resmat[,"P(D)"] + resmat[,"P(D_bar)"] * resmat[,"P(T|D_bar)"])
+
+#plot
+plot(x = resmat[,"P(T|D)"], y = resmat[,"P(D|T)"], type = "l",
+     ylab = "P(Being Drug User | Positive Test)", xlab = "Test Precision",
+     main = "Bayes' Theorem applied to Drug Tests", ylim = c(0,1))
+```
+
