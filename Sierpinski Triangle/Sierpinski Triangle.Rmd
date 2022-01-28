@@ -1,0 +1,99 @@
+---
+title: "Sierpinski Triangle"
+author: "Mathias Steilen"
+date: "26/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(gganimate)
+```
+
+### Sierpinski Triangle
+
+```{r}
+#params
+points = 20000
+x = c(0,10,5,0)
+y = c(0,0,8.66,0)
+verteces = sample(x = 1:3, size = points, replace = TRUE)
+
+#add random starting point
+x = c(x,2.5)
+y = c(y,4.3)
+
+#loop to generate additional points
+for (p in 1:points){
+  
+  if (verteces[p] == 1){ #A is 1
+    
+    x = c(x, (x[length(x)] + 0)/2)
+    y = c(y, (y[length(y)] + 0)/2)
+    
+  } else if (verteces[p] == 2){ #B is 2
+    
+    x = c(x, (x[length(x)] + 10)/2)
+    y = c(y, (y[length(y)] + 0)/2)
+    
+  } else if (verteces[p] == 3){ #C is 3
+    
+    x = c(x, (x[length(x)] + 5)/2)
+    y = c(y, (y[length(y)] + 8.66)/2)
+    
+  }
+  
+}
+
+#convert to data.frame for ggplot2
+df <- data.frame("ID" = 1:length(x), "x" = x, "y" = y)
+```
+
+```{r}
+#Chart
+graph1 = ggplot(df) +
+  geom_point(aes(x, y, group = x),
+             color = "firebrick",
+             size = 0.3) +
+  geom_segment(aes(x = 0,
+                   y = 0,
+                   xend = 5,
+                   yend = 8.66),
+               lty = 1, colour = "black") +
+  geom_segment(aes(x = 5,
+                   y = 8.66,
+                   xend = 10,
+                   yend = 0),
+               lty = 1, colour = "black") +
+  geom_segment(aes(x = 10,
+                   y = 0,
+                   xend = 0,
+                   yend = 0),
+               lty = 1, colour = "black") +
+  labs(title = "The Sierpinski Triangle",
+       subtitle = "Start at a random point in the triangle. Draw the next point halfway to one \nof the edges (randomly chosen) and repeat. A fractal shape appears.",
+       caption = paste("Frame {frame} of {nframes}")) +
+  labs(x = NULL,
+       y = NULL) +
+    theme(text=element_text(size = 11, color = "black"),
+        panel.grid.major.x = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.title=element_text(size=14, face = "bold", color="grey10"),
+        plot.subtitle=element_text(size=10, face="italic", color="grey30"),
+        plot.caption=element_text(size=6, face="italic", color="grey20"))
+                 
+
+#Animation
+graph1.animation = graph1 +
+  transition_reveal(along = ID) #pass in column name by which you transition by
+
+animate(graph1.animation, height = 800, width = 800, 
+        fps = 30, duration = 10, res = 125)
+anim_save("sierpinski.gif")
+```
