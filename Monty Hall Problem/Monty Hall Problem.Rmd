@@ -1,0 +1,196 @@
+---
+title: "Monty Hall Problem"
+author: "Mathias Steilen"
+date: "15/01/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Simulation
+
+The game show host leads you to a wall with three closed doors. Behind one of the doors is the car of your dreams, and behind each of the other two is a goat. The three doors all have even chances of hiding the car.
+
+The host, a trustworthy person who knows precisely what is behind each of the three doors, explains how the game will work. First, you will choose a door without opening it. The host will then open one of the two remaining doors to reveal a goat. When this has been done, you will be given the opportunity to switch doors. You will win whatever is behind the door you choose at this stage of the game.
+
+Do you stick to your initial choice or do you switch doors?
+
+Do you raise your chance of winning the car by switching doors?
+
+***
+
+```{r, include=FALSE}
+rm(list = ls())
+```
+
+Define: 
+
+- 1: Door 1
+- 2: Door 2
+- 3: Door 3
+- C: Car
+- G: Goat
+
+First simulation: Not switching doors, sticking to the initial choice:
+
+```{r, echo=FALSE}
+
+#################################
+## Simulation 1: Not switching ##
+#################################
+
+# params
+simulations = 10000
+outcomes <- c("C", "G", "G")
+resmat <- matrix(ncol = 7, nrow = simulations)
+colnames(resmat) <- c(1, 2, 3, "Initial Choice", 
+                      "Revealed Door", "Subsequent choice", "Win")
+options <- c(1:3)
+
+# Simulation
+for (i in 1:simulations){
+  
+  # host sets up the doors: 1 Car and 2 Goats
+  resmat[i,1:3] <- sample(x = outcomes, size = 3, replace = FALSE)  
+
+  # guest makes a random choice
+  resmat[i,4] <- sample(x = options, size = 1, replace = FALSE)
+  
+  # host reveals a goat and gives choice between chosen closed
+  # and unchosen closed door
+  doors <- resmat[i,1:3]
+  choice <- as.numeric(resmat[i,4])
+  
+  if (resmat[i,choice] == "C"){ # situation where guest chose car
+    
+    resmat[i,5] <- sample(x = options[! options %in% c(choice)], size = 1, 
+                          replace = TRUE)
+    
+  } else { # situation where guest chose goat
+    
+    resmat[i,5] <- options[! options %in% c(choice,
+                                          which(resmat[i,1:3] == "C")[[1]])]
+    
+  }
+  
+  # Offer to switch DECLINED
+  resmat[i,6] = resmat[i,4]
+  
+  #Win or no win
+  if ( resmat[i,6] == which(resmat[i,1:3] == "C")[[1]] ){
+    
+    resmat[i,7] = 1 # correct choice: win
+    
+  } else {
+    
+    resmat[i,7] = 0 # wrong choice: lose
+    
+  }
+}
+
+head(as.data.frame(resmat), 5)
+
+```
+
+```{r, fig.cap="Monty Hall Dilemma: Simulation - visualised", echo=FALSE}
+###########
+## PLOTS ##
+###########
+
+plotmat <- matrix(ncol = 2, nrow = simulations)
+plotmat[,1] <- (1:simulations)
+plotmat[,2] <- cumsum(resmat[,7])/(1:simulations)
+
+
+plotnosw <- function(){
+  plot(x = plotmat[,1], y = plotmat[,2], ylim = c(0,1), type = "l",
+       ylab = "Win Probability",
+       xlab = "Games",
+       main = "Monty Hall Dilemma: Not Switching")
+  abline(h = 1/3, col = "red", lty = "dashed")
+  grid()
+}
+
+plotnosw()
+```
+
+Second simulation: Switching doors, not sticking to the initial choice:
+
+```{r, echo=FALSE}
+
+#############################
+## Simulation 2: Switching ##
+#############################
+
+# params
+resmat <- matrix(ncol = 7, nrow = simulations)
+colnames(resmat) <- c(1, 2, 3, "Initial Choice", 
+                      "Revealed Door", "Subsequent choice", "Win")
+
+# Simulation
+for (i in 1:simulations){
+  
+  # host sets up the doors: 1 Car and 2 Goats
+  resmat[i,1:3] <- sample(x = outcomes, size = 3, replace = FALSE)  
+
+  # guest makes a random choice
+  resmat[i,4] <- sample(x = options, size = 1, replace = FALSE)
+  
+  # host reveals a goat and gives choice between chosen closed
+  # and unchosen closed door
+  doors <- resmat[i,1:3]
+  choice <- as.numeric(resmat[i,4])
+  
+  if (resmat[i,choice] == "C"){ # situation where guest chose car
+    
+    resmat[i,5] <- sample(x = options[! options %in% c(choice)], size = 1, 
+                          replace = TRUE)
+    
+  } else { # situation where guest chose goat
+    
+    resmat[i,5] <- options[! options %in% c(choice,
+                                          which(resmat[i,1:3] == "C")[[1]])]
+    
+  }
+  
+  # Offer to switch ACCEPTED
+  resmat[i,6] <- options[! options %in% c(choice, resmat[i,5])]
+  
+  #Win or no win
+  if ( resmat[i,6] == which(resmat[i,1:3] == "C")[[1]] ){
+    
+    resmat[i,7] = 1 # correct choice: win
+    
+  } else {
+    
+    resmat[i,7] = 0 # wrong choice: lose
+    
+  }
+}
+
+head(as.data.frame(resmat))
+```
+
+```{r, fig.cap="Monty Hall Dilemma: Simulation - visualised", echo=FALSE}
+###########
+## PLOTS ##
+###########
+
+plotmat <- matrix(ncol = 2, nrow = simulations)
+plotmat[,1] <- (1:simulations)
+plotmat[,2] <- cumsum(resmat[,7])/(1:simulations)
+
+
+plotsw <- function(){
+  plot(x = plotmat[,1], y = plotmat[,2], ylim = c(0,1), type = "l",
+       ylab = "Win Probability",
+       xlab = "Games",
+       main = "Monty Hall Dilemma: Switching")
+  abline(h = 2/3, col = "red", lty = "dashed")
+  grid()
+}
+
+plotsw()
+```
